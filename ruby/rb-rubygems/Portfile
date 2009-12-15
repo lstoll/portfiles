@@ -34,8 +34,10 @@ platforms		darwin
 use_configure		no
 build { }
 
-destroot.cmd	${ruby.bin} setup.rb
-destroot.args	--prefix=${prefix} --destdir=${destroot} --vendor
+#destroot.cmd	${ruby.bin} setup.rb
+# TODO - dynamically set this. variants?
+destroot.cmd /opt/local/bin/ruby1.8 setup.rb
+destroot.args	--format-executable --prefix=${prefix} --destdir=${destroot} --vendor
 destroot.env
 
 set gems_libdir ${destroot}${prefix}/lib/ruby/gems/${ruby.version}

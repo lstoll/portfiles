@@ -84,7 +84,7 @@ post-destroot {
 	}
 }
 
-variant nosuffix description "Adds a suffix to the ruby command. Need to use the same variant for rb-rubygems, and rb-rake ports." {
+variant suffix description "Adds a suffix to the ruby command. Need to use the same variant for rb-rubygems, and rb-rake ports." {
         configure.args-append           --program-suffix=1.8
 }
 
