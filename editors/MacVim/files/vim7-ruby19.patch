@@ -1,0 +1,278 @@
+diff -U1 -r src/auto/configure src/auto/configure
+--- src/auto/configure	2009-07-26 18:43:57.000000000 +0900
++++ src/auto/configure	2009-07-26 18:33:30.000000000 +0900
+@@ -5754,3 +5754,3 @@
+ $as_echo_n "checking Ruby header files... " >&6; }
+-      rubyhdrdir=`$vi_cv_path_ruby -r mkmf -e 'print Config::CONFIG["archdir"] || $hdrdir' 2>/dev/null`
++      rubyhdrdir=`$vi_cv_path_ruby -r mkmf -e 'print Config::CONFIG["rubyhdrdir"] || Config::CONFIG["archdir"] || $hdrdir' 2>/dev/null`
+       if test "X$rubyhdrdir" != "X"; then
+@@ -5759,2 +5759,8 @@
+ 	RUBY_CFLAGS="-I$rubyhdrdir"
++        rubyarch=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG["arch"]'`
++        if test -d "$rubyhdrdir/$rubyarch"; then
++          RUBY_CFLAGS="$RUBY_CFLAGS -I$rubyhdrdir/$rubyarch"
++        fi
++        rubyversion=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG["ruby_version"].gsub(/\./, "")[0,2]'`
++        RUBY_CFLAGS="$RUBY_CFLAGS -DRUBY_VERSION=$rubyversion"
+ 	rubylibs=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG["LIBS"]'`
+diff -U1 -r src/configure.in src/configure.in
+--- src/configure.in	2009-07-26 18:43:57.000000000 +0900
++++ src/configure.in	2009-07-26 17:44:38.000000000 +0900
+@@ -958,3 +958,3 @@
+       AC_MSG_CHECKING(Ruby header files)
+-      rubyhdrdir=`$vi_cv_path_ruby -r mkmf -e 'print Config::CONFIG[["archdir"]] || $hdrdir' 2>/dev/null`
++      rubyhdrdir=`$vi_cv_path_ruby -r mkmf -e 'print Config::CONFIG[["rubyhdrdir"]] || Config::CONFIG[["archdir"]] || $hdrdir' 2>/dev/null`
+       if test "X$rubyhdrdir" != "X"; then
+@@ -962,2 +962,8 @@
+ 	RUBY_CFLAGS="-I$rubyhdrdir"
++        rubyarch=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG[["arch"]]'`
++        if test -d "$rubyhdrdir/$rubyarch"; then
++          RUBY_CFLAGS="$RUBY_CFLAGS -I$rubyhdrdir/$rubyarch"
++        fi
++        rubyversion=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG[["ruby_version"]].gsub(/\./, "")[[0,2]]'`
++        RUBY_CFLAGS="$RUBY_CFLAGS -DRUBY_VERSION=$rubyversion"
+ 	rubylibs=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG[["LIBS"]]'`
+diff -U1 -r src/if_ruby.c src/if_ruby.c
+--- src/if_ruby.c	2009-06-27 20:32:13.000000000 +0900
++++ src/if_ruby.c	2009-07-26 18:40:59.000000000 +0900
+@@ -51,2 +51,5 @@
+ #include <ruby.h>
++#if defined(RUBY_VERSION) && RUBY_VERSION >=19
++#include <ruby/encoding.h>
++#endif
+ 
+@@ -62,2 +65,24 @@
+ 
++/*
++ * backward compatiblity for Ruby 1.8(or before).
++ * Ruby 1.9 does not provide STR2CSTR, instead StringValuePtr is provided.
++ * Ruby 1.9 does not provide RXXX(s)->len, RXXX(s)->ptr, instead
++ * RXXX_LEN(s), RXXX_PTR(s) is provided.
++ */
++#ifndef StringValuePtr
++#define StringValuePtr(s) STR2CSTR(s)
++#endif
++#ifndef RARRAY_LEN
++#define RARRAY_LEN(s) RARRAY(s)->len
++#endif 
++#ifndef RARRAY_PTR
++#define RARRAY_PTR(s) RARRAY(s)->ptr
++#endif
++#ifndef RSTRING_LEN
++#define RSTRING_LEN(s) RSTRING(s)->len
++#endif
++#ifndef RSTRING_PTR
++#define RSTRING_PTR(s) RSTRING(s)->ptr
++#endif
++
+ #include "vim.h"
+@@ -131,3 +156,7 @@
+ #define rb_str_new2			dll_rb_str_new2
++#if defined(RUBY_VERSION) && RUBY_VERSION >= 19
++#define rb_errinfo                      dll_rb_errinfo
++#else
+ #define ruby_errinfo			(*dll_ruby_errinfo)
++#endif
+ #define ruby_init			dll_ruby_init
+@@ -138,2 +167,10 @@
+ 
++#if defined(RUBY_VERSION) && RUBY_VERSION >= 19
++#define ruby_script                     dll_ruby_script
++#define rb_enc_find_index               dll_rb_enc_find_index
++#define rb_enc_find                     dll_rb_enc_find
++#define rb_enc_str_new                  dll_rb_enc_str_new
++#define rb_sprintf                      dll_rb_sprintf
++#endif
++
+ /*
+@@ -185,3 +222,7 @@
+ static VALUE (*dll_rb_str_new2) (const char*);
++#if defined(RUBY_VERSION) && RUBY_VERSION >= 19
++static VALUE (*dll_rb_errinfo) (void);
++#else
+ static VALUE *dll_ruby_errinfo;
++#endif
+ static void (*dll_ruby_init) (void);
+@@ -192,2 +233,10 @@
+ 
++#if defined(RUBY_VERSION) && RUBY_VERSION >= 19
++static void (*dll_ruby_script) (const char*);
++static int (*dll_rb_enc_find_index) (const char*);
++static rb_encoding* (*dll_rb_enc_find) (const char*); 
++static VALUE (*dll_rb_enc_str_new) (const char*, long, rb_encoding*);
++static VALUE (*dll_rb_sprintf) (const char*, ...);
++#endif
++
+ static HINSTANCE hinstRuby = 0; /* Instance of ruby.dll */
+@@ -247,3 +296,7 @@
+     {"rb_str_new2", (RUBY_PROC*)&dll_rb_str_new2},
++#if defined(RUBY_VERSION) && RUBY_VERSION >= 19
++    {"rb_errinfo", (RUBY_PROC*)&dll_rb_errinfo},
++#else
+     {"ruby_errinfo", (RUBY_PROC*)&dll_ruby_errinfo},
++#endif
+     {"ruby_init", (RUBY_PROC*)&dll_ruby_init},
+@@ -253,2 +306,9 @@
+ #endif
++#if defined(RUBY_VERSION) && RUBY_VERSION >= 19
++    {"ruby_script", (RUBY_PROC*)&dll_ruby_script},
++    {"rb_enc_find_index", (RUBY_PROC*)&dll_rb_enc_find_index},
++    {"rb_enc_find", (RUBY_PROC*)&dll_rb_enc_find},
++    {"rb_enc_str_new", (RUBY_PROC*)&dll_rb_enc_str_new},
++    {"rb_sprintf", (RUBY_PROC*)&dll_rb_sprintf},
++#endif
+     {"", NULL},
+@@ -342,2 +402,49 @@
+ 
++/*
++ *  In Ruby 1.9 or later, ruby String object has encoding.
++ *  conversion buffer string of vim to ruby String object using
++ *  VIM encoding option.
++ */
++    static VALUE 
++vim_str2rb_enc_str(const char *s)
++{
++#if defined(RUBY_VERSION) && RUBY_VERSION >= 19
++    int isnum;
++    long lval;
++    char_u *sval;
++    rb_encoding *enc;
++    isnum = get_option_value((char_u *)"enc", &lval, &sval, 0);
++    if (isnum == 0) {
++        enc = rb_enc_find((char*)sval);
++        vim_free(sval);
++        if (enc) {
++            return rb_enc_str_new(s, strlen(s), enc);
++        }
++    }
++#endif
++    return rb_str_new2(s);
++}
++
++static VALUE
++eval_enc_string_protect(const char *str, int *state)
++{
++#if defined(RUBY_VERSION) && RUBY_VERSION >= 19
++    int isnum;
++    long lval;
++    char_u *sval;
++    rb_encoding *enc;
++    VALUE v;
++    isnum = get_option_value((char_u *)"enc", &lval, &sval, 0);
++    if (isnum == 0) {
++        enc = rb_enc_find((char*)sval);
++        vim_free(sval);
++        if(enc) {
++            v = rb_sprintf("#-*- coding:%s -*-\n%s", rb_enc_name(enc), str);
++            return rb_eval_string_protect(StringValuePtr(v), state);
++        }
++    }
++#endif
++    return rb_eval_string_protect(str, state);
++}
++
+ void ex_rubydo(exarg_T *eap)
+@@ -354,5 +461,5 @@
+ 
+-	    line = oldline = rb_str_new2((char *)ml_get(i));
++	    line = oldline = vim_str2rb_enc_str((char *)ml_get(i));
+ 	    rb_lastline_set(line);
+-	    rb_eval_string_protect((char *) eap->arg, &state);
++	    eval_enc_string_protect((char *) eap->arg, &state);
+ 	    if (state) {
+@@ -367,3 +474,3 @@
+ 		}
+-		ml_replace(i, (char_u *) STR2CSTR(line), 1);
++		ml_replace(i, (char_u *) StringValuePtr(line), 1);
+ 		changed();
+@@ -416,5 +523,14 @@
+ #endif
++#if defined(RUBY_VERSION) && RUBY_VERSION >= 19
++            RUBY_INIT_STACK;
++#endif
+ 	    ruby_init();
++#if defined(RUBY_VERSION) && RUBY_VERSION >= 19
++            ruby_script("vim-ruby");
++#endif
+ 	    ruby_init_loadpath();
+ 	    ruby_io_init();
++#if defined(RUBY_VERSION) && RUBY_VERSION >= 19
++            rb_enc_find_index("encdb");
++#endif
+ 	    ruby_vim_init();
+@@ -436,4 +552,6 @@
+ #ifndef DYNAMIC_RUBY
++#if !(defined(RUBY_VERSION) &&  RUBY_VERSION >= 19)
+     RUBYEXTERN VALUE ruby_errinfo;
+ #endif
++#endif
+     VALUE eclass;
+@@ -470,5 +588,10 @@
+     case TAG_FATAL:
++# if defined(RUBY_VERSION) && RUBY_VERSION >= 19
++	eclass = CLASS_OF(rb_errinfo());
++	einfo = rb_obj_as_string(rb_errinfo());
++#else
+ 	eclass = CLASS_OF(ruby_errinfo);
+ 	einfo = rb_obj_as_string(ruby_errinfo);
+-	if (eclass == rb_eRuntimeError && RSTRING(einfo)->len == 0) {
++#endif
++	if (eclass == rb_eRuntimeError && RSTRING_LEN(einfo) == 0) {
+ 	    EMSG(_("E272: unhandled exception"));
+@@ -481,3 +604,3 @@
+ 	    vim_snprintf(buff, BUFSIZ, "%s: %s",
+-		     RSTRING(epath)->ptr, RSTRING(einfo)->ptr);
++		     RSTRING_PTR(epath), RSTRING_PTR(einfo));
+ 	    p = strchr(buff, '\n');
+@@ -499,4 +622,4 @@
+     str = rb_obj_as_string(str);
+-    buff = ALLOCA_N(char, RSTRING(str)->len);
+-    strcpy(buff, RSTRING(str)->ptr);
++    buff = ALLOCA_N(char, RSTRING_LEN(str));
++    strcpy(buff, RSTRING_PTR(str));
+     p = strchr(buff, '\n');
+@@ -509,3 +632,3 @@
+ {
+-    do_set((char_u *)STR2CSTR(str), 0);
++    do_set((char_u *)StringValuePtr(str), 0);
+     update_screen(NOT_VALID);
+@@ -516,3 +639,3 @@
+ {
+-    do_cmdline_cmd((char_u *)STR2CSTR(str));
++    do_cmdline_cmd((char_u *)StringValuePtr(str));
+     return Qnil;
+@@ -523,3 +646,3 @@
+ #ifdef FEAT_EVAL
+-    char_u *value = eval_to_string((char_u *)STR2CSTR(str), NULL, TRUE);
++    char_u *value = eval_to_string((char_u *)StringValuePtr(str), NULL, TRUE);
+ 
+@@ -628,3 +751,3 @@
+ 	char *line = (char *)ml_get_buf(buf, n, FALSE);
+-	return line ? rb_str_new2(line) : Qnil;
++	return line ? vim_str2rb_enc_str(line) : Qnil;
+     }
+@@ -647,3 +770,3 @@
+ {
+-    char	*line = STR2CSTR(str);
++    char	*line = StringValuePtr(str);
+     aco_save_T	aco;
+@@ -725,3 +848,3 @@
+     buf_T	*buf = get_buf(self);
+-    char	*line = STR2CSTR(str);
++    char	*line = StringValuePtr(str);
+     long	n = NUM2LONG(num);
+@@ -892,6 +1015,6 @@
+     Check_Type(pos, T_ARRAY);
+-    if (RARRAY(pos)->len != 2)
++    if (RARRAY_LEN(pos) != 2)
+ 	rb_raise(rb_eArgError, "array length must be 2");
+-    lnum = RARRAY(pos)->ptr[0];
+-    col = RARRAY(pos)->ptr[1];
++    lnum = RARRAY_PTR(pos)[0];
++    col = RARRAY_PTR(pos)[1];
+     win->w_cursor.lnum = NUM2LONG(lnum);
+@@ -912,3 +1035,3 @@
+     }
+-    MSG(RSTRING(str)->ptr);
++    MSG(RSTRING_PTR(str));
+     return Qnil;
