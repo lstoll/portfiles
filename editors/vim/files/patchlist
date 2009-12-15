@@ -1,0 +1,36 @@
+eval {
+  set low 1
+  set patchlevel [string trimleft $vim_patchlevel 0]
+  set files {}
+
+  while {$low <= $patchlevel} {
+    set high [expr $low + 99];
+    if {$high < $patchlevel} {
+      patchfiles-append [format "%s.%03d-%03d.gz" $vim_version $low $high]
+      incr low 100
+    } else {
+      patchfiles-append [format "%s.%03d" $vim_version $low]
+      incr low 1
+    }
+  }
+}
+
+checksums-append \
+  7.2.001-100.gz md5 ba91b19374cee90f71b8f4ab1d92dc0f \
+  7.2.101-200.gz md5 b485233d360041d043c56cd99057dbff \
+  7.2.201-300.gz md5 069fb537772a8e4a74119d8a6a7e61f3 \
+  7.2.301 md5 dba442d3c7ab15794c48d89ac2bd50ab \
+  7.2.302 md5 76ddee93248aaaaeb56a926f90a92d48 \
+  7.2.303 md5 9e448cc39db6bca1421c58fd91994c2e \
+  7.2.304 md5 dc47073f62ba8b87d29593042e6b9c24 \
+  7.2.305 md5 87698db3201d95b973430479872fb70c \
+  7.2.306 md5 4927e5f5c757b610db1184ed05c1c355 \
+  7.2.307 md5 a3f136eb3e73254fe1bc90dd3319886f \
+  7.2.308 md5 366670c20b3dccd17ba16b48c0643543 \
+  7.2.309 md5 a33bf5b244644dc1dfcedb58b64e224a \
+  7.2.310 md5 2b4e530e0286197917cccc4d5ddad75b \
+  7.2.311 md5 a121e8d4f5d3ef109b7dc708160c48ed \
+  7.2.312 md5 9d43a4cb5261144c5368afb47e91b15e \
+  7.2.313 md5 fc0905f652a5c3e2f8144ad940454ceb \
+  7.2.314 md5 bbc2bc5e522158c34f5a957e9a43ec85 \
+  7.2.315 md5 abda87ae0b9590203661dff5cf212918
