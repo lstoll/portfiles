@@ -1,0 +1,11 @@
+--- src/osx_cocoa/propgrid_wrap.cpp.orig	2009-09-21 10:44:51.000000000 +0200
++++ src/osx_cocoa/propgrid_wrap.cpp	2009-09-21 10:46:14.000000000 +0200
+@@ -3541,7 +3541,7 @@
+     }
+     else if ( input == Py_None )
+     {
+-        *v = new wxPGPropArgCls(NULL);
++        *v = new wxPGPropArgCls((const wxPGProperty*) NULL);
+     }
+     else
+     {

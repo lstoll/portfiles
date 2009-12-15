@@ -1,0 +1,63 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=2:ts=2:sts=2
+
+PortSystem					1.0
+PortGroup						python26 1.0
+
+name								py26-wxpython-devel
+version							svn
+categories-append		graphics
+maintainers					jameskyle
+description					Python interface to the wxWindows (leading edge development)
+long_description		wxPython is a GUI toolkit for the Python programming \
+										language. It allows Python programmers to create \
+										programs with a robust, highly functional graphical \
+										user interface, simply and easily. It is implemented \
+										as a Python extension module (native code) that wraps \
+										the popular wxWindows cross platform GUI library, \
+										which is written in C++.
+										
+homepage						http://www.wxpython.org/
+
+platforms						darwin
+depends_lib					port:python26 \
+										port:wxWidgets-devel
+
+fetch.type					svn
+svn.url							http://svn.wxwidgets.org/svn/wx/wxPython/trunk/
+
+worksrcdir					trunk
+
+use_configure				no
+
+patchfiles					patch-setup_py.diff \
+										patch-config_py.diff
+
+build.cmd						${python.bin} setup.py
+build.target				build
+build.args					"WX_CONFIG=${prefix}/bin/wx-config \
+											WXPORT=osx_carbon"
+
+destroot.cmd				${python.bin} setup.py
+destroot.target			install
+destroot.args				"--prefix=${python.prefix} --root=${destroot} \
+											WXHEADERS=${prefix}/include/wx-devel \
+											WX_CONFIG=${prefix}/bin/wx-config \
+											WXPORT=osx_carbon"
+
+variant cocoa description {Builds osx_cocoa version} {
+
+	build.args				"WX_CONFIG=${prefix}/bin/wx-config \
+											WXPORT=osx_cocoa"
+	
+	destroot.args			"--prefix=${python.prefix} --root=${destroot} \
+											WXHEADERS=${prefix}/include/wx-devel \
+											WX_CONFIG=${prefix}/bin/wx-config \
+											WXPORT=osx_cocoa"
+}
+
+post-destroot {
+	xinstall -d -m 755 ${destroot}${prefix}/share/doc/
+	file copy ${worksrcpath}/docs ${destroot}${prefix}/share/doc/${name}
+	file copy ${worksrcpath}/samples \
+		${destroot}${prefix}/share/doc/${name}/examples
+}

@@ -1,0 +1,12 @@
+--- bk-make-pch.orig	2009-09-19 13:53:35.000000000 +0200
++++ bk-make-pch	2009-09-19 13:55:06.000000000 +0200
+@@ -35,6 +35,9 @@
+     shift
+ done
+ 
++# Remove -arch flags from compiler
++compiler=`echo ${compiler} | sed -E 's/-arch [^ ]*//g'`
++
+ if test "x${headerfile}" = "x" ; then
+     echo "error: can't find header ${header} in include paths" >&2
+ else

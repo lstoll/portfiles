@@ -1,0 +1,22 @@
+--- config.py.orig	2009-09-22 16:54:43.000000000 +0200
++++ config.py	2009-09-22 16:56:45.000000000 +0200
+@@ -288,7 +288,7 @@
+ # String options
+ for option in ['WX_CONFIG', 'SYS_WX_CONFIG', 'WXDLLVER', 'BUILD_BASE',
+                'WXPORT', 'SWIG', 'CONTRIBS_INC', 'WXPY_SRC', 'FLAVOUR',
+-               'VER_FLAGS', 'ARCH', 'COMPILER',
++               'VER_FLAGS', 'ARCH', 'COMPILER', 'WXHEADERS',
+                ]:
+     for x in range(len(sys.argv)):
+         if sys.argv[x].find(option) == 0:
+@@ -509,8 +509,8 @@
+             root = ''
+         for header, location in headers:
+             install_dir = os.path.normpath(root +
+-                                           WXPREFIX +
+-                                           '/include/wx-%d.%d/wx' % (VER_MAJOR, VER_MINOR) +
++                                           WXHEADERS +
++                                           '/wx-%d.%d/wx' % (VER_MAJOR, VER_MINOR) +
+                                            location)
+             self.mkpath(install_dir)
+             (out, _) = self.copy_file(header, install_dir)

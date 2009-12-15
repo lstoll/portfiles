@@ -1,0 +1,19 @@
+--- setup.py.orig	2009-09-21 09:42:45.000000000 +0200
++++ setup.py	2009-09-21 09:43:06.000000000 +0200
+@@ -157,11 +157,11 @@
+ 
+ 
+ # update the license files
+-mkpath('licence')
+-for file in ['preamble.txt', 'licence.txt', 'licendoc.txt', 'lgpl.txt']:
+-    copy_file(opj(WXDIR, 'docs', file), opj('licence',file), update=1, verbose=0)
+-    CLEANUP.append(opj('licence',file))
+-CLEANUP.append('licence')
++#mkpath('licence')
++#for file in ['preamble.txt', 'licence.txt', 'licendoc.txt', 'lgpl.txt']:
++#    copy_file(opj(WXDIR, 'docs', file), opj('licence',file), update=1, verbose=0)
++#    CLEANUP.append(opj('licence',file))
++#CLEANUP.append('licence')
+ 
+ 
+ if sys.platform in ['win32', 'darwin']:
